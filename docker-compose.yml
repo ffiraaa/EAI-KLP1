@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # ── Message Broker ──────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - retail-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Services ─────────────────────────────────────
+  pos:
+    build: ./services/pos
+    container_name: pos-service
+    ports:
+      - "${POS_PORT}:3001"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_SALE_CREATED=${QUEUE_SALE_CREATED}
+      - DB_PATH=${POS_DB}
+    volumes:
+      - pos_data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+  inventory:
+    build: ./services/inventory
+    container_name: inventory-service
+    ports:
+      - "${INVENTORY_PORT}:3002"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_SALE_CREATED=${QUEUE_SALE_CREATED}
+      - QUEUE_STOCK_UPDATED=${QUEUE_STOCK_UPDATED}
+      - DB_PATH=${INVENTORY_DB}
+    volumes:
+      - inventory_data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+  accounting:
+    build: ./services/accounting
+    container_name: accounting-service
+    ports:
+      - "${ACCOUNTING_PORT}:3003"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_ACCOUNTING_ENTRY=${QUEUE_ACCOUNTING_ENTRY}
+      - DB_PATH=${ACCOUNTING_DB}
+    volumes:
+      - accounting_data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+  ecommerce:
+    build: ./services/ecommerce
+    container_name: ecommerce-service
+    ports:
+      - "${ECOMMERCE_PORT}:3004"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_ECOMMERCE_SYNC=${QUEUE_ECOMMERCE_SYNC}
+      - DB_PATH=${ECOMMERCE_DB}
+    volumes:
+      - ecommerce_data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+  crm:
+    build: ./services/crm
+    container_name: crm-service
+    ports:
+      - "${CRM_PORT}:3005"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_CRM_UPDATE=${QUEUE_CRM_UPDATE}
+      - DB_PATH=${CRM_DB}
+    volumes:
+      - crm_data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+  # ── Integration Layer ────────────────────────────
+  gateway:
+    build: ./integration/gateway
+    container_name: api-gateway
+    ports:
+      - "${GATEWAY_PORT}:3000"
+    environment:
+      - POS_URL=http://pos:3001
+      - INVENTORY_URL=http://inventory:3002
+      - ACCOUNTING_URL=http://accounting:3003
+      - ECOMMERCE_URL=http://ecommerce:3004
+      - CRM_URL=http://crm:3005
+    depends_on:
+      - pos
+      - inventory
+      - accounting
+      - ecommerce
+      - crm
+    networks:
+      - retail-network
+
+  transformer:
+    build: ./integration/transformer
+    container_name: transformer-service
+    ports:
+      - "${TRANSFORMER_PORT}:3006"
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - QUEUE_SALE_CREATED=${QUEUE_SALE_CREATED}
+      - QUEUE_ACCOUNTING_ENTRY=${QUEUE_ACCOUNTING_ENTRY}
+      - QUEUE_STOCK_UPDATED=${QUEUE_STOCK_UPDATED}
+      - QUEUE_CRM_UPDATE=${QUEUE_CRM_UPDATE}
+      - QUEUE_ECOMMERCE_SYNC=${QUEUE_ECOMMERCE_SYNC}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+# ── Volumes ───────────────────────────────────────
+volumes:
+  rabbitmq_data:
+  pos_data:
+  inventory_data:
+  accounting_data:
+  ecommerce_data:
+  crm_data:
+
+# ── Networks ──────────────────────────────────────
+networks:
+  retail-network:
+    driver: bridge
