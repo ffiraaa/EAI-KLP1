@@ -1,0 +1,47 @@
+import { Search, Bell, ChevronDown, Building2 } from 'lucide-react';
+import { useState } from 'react';
+
+export default function TopNav() {
+  const [company] = useState('PT Circle Indonesia');
+
+  return (
+    <header className="fixed top-0 left-60 right-0 h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 z-20 shadow-sm">
+      {/* Search */}
+      <div className="flex-1 max-w-md relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search anything..."
+          className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition-all"
+        />
+      </div>
+
+      <div className="flex items-center gap-3 ml-auto">
+        {/* Company Selector */}
+        <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700">
+          <Building2 size={14} className="text-blue-500" />
+          <span className="font-medium text-xs">{company}</span>
+          <ChevronDown size={13} className="text-gray-400" />
+        </button>
+
+        {/* Notifications */}
+        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+          <Bell size={16} className="text-gray-500" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full" />
+        </button>
+
+        {/* Avatar */}
+        <div className="flex items-center gap-2 cursor-pointer group">
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm">
+            A
+          </div>
+          <div className="hidden sm:block">
+            <p className="text-xs font-semibold text-gray-800">Admin</p>
+            <p className="text-[10px] text-gray-400">Super Admin</p>
+          </div>
+          <ChevronDown size={13} className="text-gray-400 group-hover:text-gray-600" />
+        </div>
+      </div>
+    </header>
+  );
+}

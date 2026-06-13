@@ -89,6 +89,7 @@ docker compose up --build
 | Accounting         | http://localhost:3003  |
 | E-Commerce         | http://localhost:3004  |
 | CRM                | http://localhost:3005  |
+| ERP Dashboard      | http://localhost:5173  |
 | RabbitMQ Dashboard | http://localhost:15672 |
 
 RabbitMQ Login:

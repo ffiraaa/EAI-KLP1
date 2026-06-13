@@ -165,6 +165,16 @@ services:
     networks:
       - retail-network
 
+  erp-dashboard:
+    build: ./erp-dashboard
+    container_name: erp-dashboard
+    ports:
+      - "5173:5173"
+    networks:
+      - retail-network
+    depends_on:
+      - gateway
+
 # ── Volumes ───────────────────────────────────────
 volumes:
   rabbitmq_data:
