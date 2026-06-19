@@ -83,6 +83,7 @@ export default function CrmPage() {
                         {c.name?.charAt(0)}
                       </div>
                       <div>
+                        <p className="text-xs font-medium text-gray-400">{c.id}</p>
                         <p className="text-sm font-medium text-gray-800">{c.name}</p>
                         <p className="text-xs text-gray-400">{c.email}</p>
                       </div>
@@ -138,7 +139,7 @@ export default function CrmPage() {
 
             {/* History */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2"><History size={14}/> Spending History</h4>
+              <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2"><History size={14} /> Spending History</h4>
               {history.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-6">No purchase history yet</p>
               ) : (

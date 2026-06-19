@@ -64,6 +64,7 @@ async function connectRabbitMQ() {
       channel = await conn.createChannel();
 
       await channel.assertQueue(process.env.QUEUE_ECOMMERCE_SYNC, { durable: true });
+      await channel.assertExchange('sale.created.exchange', 'fanout', { durable: true });
 
       // Subscribe ke ecommerce.sync — sync stok dari inventory
       channel.consume(process.env.QUEUE_ECOMMERCE_SYNC, async (msg) => {
@@ -165,7 +166,49 @@ app.post('/orders', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(order.id, order.customer_id, order.customer_name, order.items, order.total_amount, order.status);
 
+  // Jika ingin publish saat dibuat, kita bisa publish di sini.
+  // Tapi karena status masih pending, kita publish saat status jadi completed.
+
   res.status(201).json({ success: true, message: 'Order berhasil dibuat', data: { ...order, items: enrichedItems } });
+});
+
+// PATCH update status order
+app.patch('/orders/:id/status', (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['pending', 'processing', 'completed', 'cancelled'];
+  
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, message: 'Status tidak valid' });
+  }
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ success: false, message: 'Order tidak ditemukan' });
+
+  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
+
+  if (status === 'completed' && order.status !== 'completed' && channel) {
+    const items = JSON.parse(order.items);
+    const event = {
+      event_type: 'ecommerce.order.created',
+      transaction_id: order.id,
+      customer_id: order.customer_id,
+      customer_name: order.customer_name,
+      items: items,
+      total_amount: order.total_amount,
+      payment_method: 'online',
+      timestamp: new Date().toISOString()
+    };
+
+    channel.publish(
+      'sale.created.exchange',
+      '',
+      Buffer.from(JSON.stringify(event)),
+      { persistent: true }
+    );
+    console.log(`📤 Event ecommerce.order.created dikirim: ${order.id}`);
+  }
+
+  res.json({ success: true, message: 'Status berhasil diupdate', data: { ...order, status } });
 });
 
 // GET semua order

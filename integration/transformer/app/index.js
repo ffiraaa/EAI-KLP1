@@ -38,11 +38,15 @@ function toCanonicalSaleEvent(raw) {
 
 // ── Message Translator: Canonical → XML ──────────
 function toAccountingXML(canonical) {
+  const prefix = canonical.event_type === 'ecommerce.order.created' 
+    ? 'Penjualan E-Commerce' 
+    : 'Penjualan POS';
+
   return xmlBuilder.buildObject({
     Id: uuidv4(),
     TransactionId: canonical.transaction_id,
     EntryDate: canonical.timestamp.split('T')[0],
-    Description: `Penjualan POS - ${canonical.items.map(i => i.name).join(', ')}`,
+    Description: `${prefix} - ${canonical.items.map(i => i.name).join(', ')}`,
     DebitAccount: 'Cash',
     CreditAccount: 'Revenue',
     Amount: canonical.total_amount,

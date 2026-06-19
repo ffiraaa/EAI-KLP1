@@ -43,6 +43,7 @@ export const restockProduct = (id, data) => api.post(`/api/inventory/products/${
 export const getEcomProducts = () => api.get('/api/ecommerce/products');
 export const getEcomOrders = () => api.get('/api/ecommerce/orders');
 export const createOrder = (data) => api.post('/api/ecommerce/orders', data);
+export const updateOrderStatus = (id, data) => api.patch(`/api/ecommerce/orders/${id}/status`, data);
 
 // CRM
 export const getCustomers = () => api.get('/api/crm/customers');

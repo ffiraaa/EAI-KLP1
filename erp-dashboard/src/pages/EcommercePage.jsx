@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Dialog from '../components/Dialog';
-import { getEcomProducts, getEcomOrders, createOrder } from '../services/api';
+import { getEcomProducts, getEcomOrders, createOrder, updateOrderStatus } from '../services/api';
 
 export default function EcommercePage() {
   const [tab, setTab] = useState('products');
@@ -55,6 +55,15 @@ export default function EcommercePage() {
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to create order.');
     } finally { setSaving(false); }
+  }
+
+  async function handleUpdateStatus(id, status) {
+    try {
+      await updateOrderStatus(id, { status });
+      load();
+    } catch (e) {
+      alert('Failed to update status');
+    }
   }
 
   return (
@@ -129,7 +138,7 @@ export default function EcommercePage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {['Order ID', 'Customer', 'Total', 'Status', 'Date'].map(h => (
+                  {['Order ID', 'Customer', 'Total', 'Status', 'Date', 'Action'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -152,6 +161,16 @@ export default function EcommercePage() {
                       <span className="badge bg-blue-50 text-blue-700 capitalize">{o.status || 'pending'}</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{o.created_at?.slice(0, 16)}</td>
+                    <td className="px-4 py-3">
+                      {o.status !== 'completed' && o.status !== 'cancelled' && (
+                        <button 
+                          onClick={() => handleUpdateStatus(o.id, 'completed')}
+                          className="px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Complete
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
