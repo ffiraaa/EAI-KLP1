@@ -94,15 +94,28 @@ app.post('/transactions', async (req, res) => {
   }
 
   let total_amount = 0;
+  const enrichedItems = [];
+
   for (const item of items) {
-    total_amount += item.price * item.quantity;
+    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.product_id);
+    if (!product) {
+      return res.status(400).json({ success: false, message: `Produk dengan ID ${item.product_id} tidak ditemukan` });
+    }
+    
+    total_amount += product.price * item.quantity;
+    enrichedItems.push({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: item.quantity
+    });
   }
 
   const transaction = {
     id: uuidv4(),
     customer_id: customer_id || 'GUEST',
     customer_name: customer_name || 'Guest',
-    items: JSON.stringify(items),
+    items: JSON.stringify(enrichedItems),
     total_amount,
     payment_method: payment_method || 'cash',
     status: 'completed'
@@ -127,7 +140,7 @@ app.post('/transactions', async (req, res) => {
       transaction_id: transaction.id,
       customer_id: transaction.customer_id,
       customer_name: transaction.customer_name,
-      items,
+      items: enrichedItems,
       total_amount,
       payment_method: transaction.payment_method,
       timestamp: new Date().toISOString()
@@ -147,7 +160,7 @@ app.post('/transactions', async (req, res) => {
   res.status(201).json({
     success: true,
     message: 'Transaksi berhasil dibuat',
-    data: { ...transaction, items }
+    data: { ...transaction, items: enrichedItems }
   });
 });
 

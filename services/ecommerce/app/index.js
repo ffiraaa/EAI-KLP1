@@ -134,15 +134,28 @@ app.post('/orders', (req, res) => {
   }
 
   let total_amount = 0;
+  const enrichedItems = [];
+  
   for (const item of items) {
-    total_amount += item.price * item.quantity;
+    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.product_id);
+    if (!product) {
+      return res.status(400).json({ success: false, message: `Produk dengan ID ${item.product_id} tidak ditemukan` });
+    }
+    
+    total_amount += product.price * item.quantity;
+    enrichedItems.push({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: item.quantity
+    });
   }
 
   const order = {
     id: uuidv4(),
     customer_id: customer_id || 'GUEST',
     customer_name: customer_name || 'Guest',
-    items: JSON.stringify(items),
+    items: JSON.stringify(enrichedItems),
     total_amount,
     status: 'pending'
   };
@@ -152,7 +165,7 @@ app.post('/orders', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(order.id, order.customer_id, order.customer_name, order.items, order.total_amount, order.status);
 
-  res.status(201).json({ success: true, message: 'Order berhasil dibuat', data: { ...order, items } });
+  res.status(201).json({ success: true, message: 'Order berhasil dibuat', data: { ...order, items: enrichedItems } });
 });
 
 // GET semua order

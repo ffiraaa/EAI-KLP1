@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Dialog from '../components/Dialog';
-import { getPosTransactions, createTransaction } from '../services/api';
+import { getPosTransactions, getPosProducts, createTransaction } from '../services/api';
 
 const PM_OPTIONS = ['cash', 'transfer', 'card', 'qris'];
 
@@ -21,16 +21,18 @@ export default function SalesPage() {
   const PAGE_SIZE = 10;
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ customer_id: '', customer_name: '', items: [{ product_name: '', price: '', quantity: 1 }], payment_method: 'cash' });
+  const [products, setProducts] = useState([]);
+  const [form, setForm] = useState({ customer_id: '', customer_name: '', items: [{ product_id: '', quantity: 1 }], payment_method: 'cash' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   async function load() {
     setLoading(true);
     try {
-      const res = await getPosTransactions();
+      const [res, prodRes] = await Promise.all([getPosTransactions(), getPosProducts()]);
       setTxs(res.data.data || []);
-    } catch { setTxs([]); } finally { setLoading(false); }
+      setProducts(prodRes.data.data || []);
+    } catch { setTxs([]); setProducts([]); } finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
@@ -58,7 +60,7 @@ export default function SalesPage() {
 
   async function handleSubmit() {
     setError('');
-    const items = form.items.filter(i => i.product_name && i.price && i.quantity);
+    const items = form.items.filter(i => i.product_id && i.quantity);
     if (!items.length) { setError('Add at least one product.'); return; }
     setSaving(true);
     try {
@@ -66,18 +68,18 @@ export default function SalesPage() {
         customer_id: form.customer_id || 'GUEST',
         customer_name: form.customer_name || 'Guest',
         payment_method: form.payment_method,
-        items: items.map(i => ({ product_name: i.product_name, price: Number(i.price), quantity: Number(i.quantity) }))
+        items: items.map(i => ({ product_id: i.product_id, quantity: Number(i.quantity) }))
       };
       await createTransaction(payload);
       setOpen(false);
-      setForm({ customer_id: '', customer_name: '', items: [{ product_name: '', price: '', quantity: 1 }], payment_method: 'cash' });
+      setForm({ customer_id: '', customer_name: '', items: [{ product_id: '', quantity: 1 }], payment_method: 'cash' });
       load();
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to create transaction.');
     } finally { setSaving(false); }
   }
 
-  function addItem() { setForm(f => ({ ...f, items: [...f.items, { product_name: '', price: '', quantity: 1 }] })); }
+  function addItem() { setForm(f => ({ ...f, items: [...f.items, { product_id: '', quantity: 1 }] })); }
   function removeItem(i) { setForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) })); }
   function updateItem(i, key, val) { setForm(f => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, [key]: val } : it) })); }
 
@@ -184,8 +186,10 @@ export default function SalesPage() {
             </div>
             {form.items.map((item, i) => (
               <div key={i} className="flex gap-2 mb-2">
-                <input value={item.product_name} onChange={e => updateItem(i, 'product_name', e.target.value)} placeholder="Product name" className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                <input value={item.price} onChange={e => updateItem(i, 'price', e.target.value)} placeholder="Price" type="number" className="w-24 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                <select value={item.product_id} onChange={e => updateItem(i, 'product_id', e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
+                  <option value="" disabled>Select Product</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (Rp {p.price?.toLocaleString()})</option>)}
+                </select>
                 <input value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} placeholder="Qty" type="number" min="1" className="w-16 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                 {form.items.length > 1 && <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 px-1">×</button>}
               </div>

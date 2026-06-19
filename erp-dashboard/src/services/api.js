@@ -6,16 +6,33 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     console.error('[API Error]', err.message);
+    if (err.response && err.response.status === 401) {
+      // Optional: Handle unauthorized by redirecting to login or clearing token
+      // localStorage.removeItem('token');
+      // window.location.href = '/login';
+    }
     return Promise.reject(err);
   }
 );
 
 // POS
 export const getPosTransactions = () => api.get('/api/pos/transactions');
+export const getPosProducts = () => api.get('/api/pos/products');
 export const createTransaction = (data) => api.post('/api/pos/transactions', data);
 
 // Inventory

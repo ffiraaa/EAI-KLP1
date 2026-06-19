@@ -6,7 +6,6 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"
       - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
@@ -16,7 +15,7 @@ services:
     networks:
       - retail-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,8 +44,6 @@ services:
   inventory:
     build: ./services/inventory
     container_name: inventory-service
-    ports:
-      - "${INVENTORY_PORT}:3002"
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_PORT=${RABBITMQ_PORT}
@@ -66,8 +63,6 @@ services:
   accounting:
     build: ./services/accounting
     container_name: accounting-service
-    ports:
-      - "${ACCOUNTING_PORT}:3003"
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_PORT=${RABBITMQ_PORT}
@@ -86,8 +81,6 @@ services:
   ecommerce:
     build: ./services/ecommerce
     container_name: ecommerce-service
-    ports:
-      - "${ECOMMERCE_PORT}:3004"
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_PORT=${RABBITMQ_PORT}
@@ -106,8 +99,6 @@ services:
   crm:
     build: ./services/crm
     container_name: crm-service
-    ports:
-      - "${CRM_PORT}:3005"
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_PORT=${RABBITMQ_PORT}
@@ -184,7 +175,7 @@ volumes:
   ecommerce_data:
   crm_data:
 
-# ── Networks ──────────────────────────────────────
+    # ── Networks ──────────────────────────────────────
 networks:
   retail-network:
     driver: bridge

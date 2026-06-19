@@ -6,7 +6,7 @@ const morgan = require('morgan');
 const app = express();
 app.use(cors());
 app.use(morgan('dev'));
-app.use(express.json());
+
 
 // ── Service URLs ─────────────────────────────────
 const services = {
@@ -38,28 +38,72 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Auth & Role-Based Access (JWT) ───────────────
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'rahasia-negara-123';
+
+const users = [
+  { username: 'admin', password: 'password123', role: 'admin' },
+  { username: 'user', password: 'password123', role: 'user' }
+];
+
+app.post('/api/login', express.json(), (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Kredensial tidak valid' });
+  }
+  const token = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+  res.json({ success: true, token, role: user.role });
+});
+
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) return res.status(403).json({ success: false, message: 'Token tidak valid' });
+      req.user = user;
+      next();
+    });
+  } else {
+    res.status(401).json({ success: false, message: 'Header Authorization tidak ditemukan' });
+  }
+};
+
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (req.user && req.user.role === role) {
+      next();
+    } else {
+      res.status(403).json({ success: false, message: `Akses ditolak: Membutuhkan role ${role}` });
+    }
+  };
+};
+
 // ── Proxy Routes ─────────────────────────────────
-app.use('/api/pos', createProxyMiddleware({
+app.use('/api/pos', authenticateJWT, createProxyMiddleware({
   ...proxyOptions(services.pos),
   pathRewrite: { '^/api/pos': '' }
 }));
 
-app.use('/api/inventory', createProxyMiddleware({
+app.use('/api/inventory', authenticateJWT, createProxyMiddleware({
   ...proxyOptions(services.inventory),
   pathRewrite: { '^/api/inventory': '' }
 }));
 
-app.use('/api/accounting', createProxyMiddleware({
+// Contoh rute accounting hanya bisa diakses admin
+app.use('/api/accounting', authenticateJWT, requireRole('admin'), createProxyMiddleware({
   ...proxyOptions(services.accounting),
   pathRewrite: { '^/api/accounting': '' }
 }));
 
-app.use('/api/ecommerce', createProxyMiddleware({
+app.use('/api/ecommerce', authenticateJWT, createProxyMiddleware({
   ...proxyOptions(services.ecommerce),
   pathRewrite: { '^/api/ecommerce': '' }
 }));
 
-app.use('/api/crm', createProxyMiddleware({
+app.use('/api/crm', authenticateJWT, createProxyMiddleware({
   ...proxyOptions(services.crm),
   pathRewrite: { '^/api/crm': '' }
 }));

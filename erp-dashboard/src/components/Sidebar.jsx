@@ -16,6 +16,16 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const role = localStorage.getItem('role') || 'user';
+  const username = localStorage.getItem('username') || 'Guest';
+
+  const visibleNavItems = navItems.filter(item => {
+    if (role !== 'admin' && ['/accounting', '/system', '/reports'].includes(item.to)) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 bg-white border-r border-gray-100 flex flex-col z-30 shadow-sm">
       {/* Logo */}
@@ -33,7 +43,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pb-2">Main Menu</p>
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {visibleNavItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -58,10 +68,12 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-gray-100">
         <div className="flex items-center gap-2 px-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">A</div>
+          <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+            {username.charAt(0).toUpperCase()}
+          </div>
           <div>
-            <p className="text-xs font-semibold text-gray-700">Admin</p>
-            <p className="text-[10px] text-gray-400">admin@circle.erp</p>
+            <p className="text-xs font-semibold text-gray-700 capitalize">{username}</p>
+            <p className="text-[10px] text-gray-400">{role.toUpperCase()}</p>
           </div>
         </div>
       </div>

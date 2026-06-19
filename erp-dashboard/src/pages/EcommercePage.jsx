@@ -12,7 +12,7 @@ export default function EcommercePage() {
   const [search, setSearch] = useState('');
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ customer_id: '', customer_name: '', items: [{ product_name: '', quantity: 1 }] });
+  const [form, setForm] = useState({ customer_id: '', customer_name: '', items: [{ product_id: '', quantity: 1 }] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,23 +33,23 @@ export default function EcommercePage() {
     o.id?.toLowerCase().includes(search.toLowerCase())
   );
 
-  function addItem() { setForm(f => ({...f, items: [...f.items, { product_name: '', quantity: 1 }]})); }
+  function addItem() { setForm(f => ({...f, items: [...f.items, { product_id: '', quantity: 1 }]})); }
   function removeItem(i) { setForm(f => ({...f, items: f.items.filter((_, idx) => idx !== i)})); }
   function updateItem(i, key, val) { setForm(f => ({...f, items: f.items.map((it, idx) => idx === i ? {...it, [key]: val} : it)})); }
 
   async function handleSubmit() {
     setError('');
-    const items = form.items.filter(i => i.product_name && i.quantity);
+    const items = form.items.filter(i => i.product_id && i.quantity);
     if (!items.length) { setError('Add at least one product.'); return; }
     setSaving(true);
     try {
       await createOrder({
         customer_id: form.customer_id || 'GUEST',
         customer_name: form.customer_name || 'Guest',
-        items: items.map(i => ({ product_name: i.product_name, quantity: Number(i.quantity) }))
+        items: items.map(i => ({ product_id: i.product_id, quantity: Number(i.quantity) }))
       });
       setOpen(false);
-      setForm({ customer_id: '', customer_name: '', items: [{ product_name: '', quantity: 1 }] });
+      setForm({ customer_id: '', customer_name: '', items: [{ product_id: '', quantity: 1 }] });
       setTab('orders');
       load();
     } catch (e) {
@@ -185,7 +185,10 @@ export default function EcommercePage() {
             </div>
             {form.items.map((item, i) => (
               <div key={i} className="flex gap-2 mb-2">
-                <input value={item.product_name} onChange={e => updateItem(i, 'product_name', e.target.value)} placeholder="Product name" className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                <select value={item.product_id} onChange={e => updateItem(i, 'product_id', e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
+                  <option value="" disabled>Select Product</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (Rp {p.price?.toLocaleString()} - Stock: {p.stock})</option>)}
+                </select>
                 <input value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} placeholder="Qty" type="number" min="1" className="w-20 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                 {form.items.length > 1 && <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 px-1">×</button>}
               </div>

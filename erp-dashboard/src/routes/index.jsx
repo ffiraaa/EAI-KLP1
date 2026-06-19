@@ -8,20 +8,37 @@ import CrmPage from '../pages/CrmPage';
 import AccountingPage from '../pages/AccountingPage';
 import ReportsPage from '../pages/ReportsPage';
 import SystemMonitorPage from '../pages/SystemMonitorPage';
+import LoginPage from '../pages/LoginPage';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />
+  },
+  {
     path: '/',
-    element: <MainLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'sales', element: <SalesPage /> },
-      { path: 'inventory', element: <InventoryPage /> },
-      { path: 'ecommerce', element: <EcommercePage /> },
-      { path: 'customers', element: <CrmPage /> },
-      { path: 'accounting', element: <AccountingPage /> },
-      { path: 'reports', element: <ReportsPage /> },
-      { path: 'system', element: <SystemMonitorPage /> },
+      {
+        path: '',
+        element: <MainLayout />,
+        children: [
+          { index: true, element: <DashboardPage /> },
+          { path: 'sales', element: <SalesPage /> },
+          { path: 'inventory', element: <InventoryPage /> },
+          { path: 'ecommerce', element: <EcommercePage /> },
+          { path: 'customers', element: <CrmPage /> },
+          {
+            element: <ProtectedRoute roles={['admin']} />,
+            children: [
+              { path: 'accounting', element: <AccountingPage /> },
+              { path: 'reports', element: <ReportsPage /> },
+              { path: 'system', element: <SystemMonitorPage /> },
+            ]
+          }
+        ],
+      },
     ],
   },
 ]);
